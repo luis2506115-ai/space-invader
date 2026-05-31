@@ -1,45 +1,66 @@
 import pygame
 import sys
+from jugador import Jugador
+from enemigo import Enemigo
 
-# 1. Inicializar Pygame
 pygame.init()
 
-# 2. Configuración de la pantalla
 ANCHO = 800
 ALTO = 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Space Invader - IA Engineering")
 
-# 3. Configuración del reloj (para controlar los FPS)
 reloj = pygame.time.Clock()
 FPS = 60
-
-# Colores básicos (RGB)
 NEGRO = (0, 0, 0)
 
 def main():
     jugando = True
     
-    # --- GAME LOOP ---
+    nave = Jugador(ANCHO // 2, ALTO - 50)
+    
+    grupo_sprites = pygame.sprite.Group()
+    grupo_enemigos = pygame.sprite.Group()
+    grupo_laseres = pygame.sprite.Group() # <-- 1. Creamos el grupo de láseres
+    
+    grupo_sprites.add(nave)
+
+    # Generar la flota
+    for fila in range(4):
+        for columna in range(8):
+            e_x = 100 + (columna * 70)
+            e_y = 50 + (fila * 60)
+            alien = Enemigo(e_x, e_y)
+            grupo_enemigos.add(alien)
+            grupo_sprites.add(alien)
+
     while jugando:
-        # A. Manejo de eventos
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 jugando = False
+            elif evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_SPACE:
+                    # 2. Le pasamos ambos grupos a la función disparar
+                    nave.disparar(grupo_sprites, grupo_laseres)
                 
-        # B. Lógica del juego (movimientos, colisiones, etc.)
-        # (Por ahora vacío)
+        teclas_presionadas = pygame.key.get_pressed()
+        nave.update(teclas_presionadas)
         
-        # C. Renderizado (Dibujar en pantalla)
-        pantalla.fill(NEGRO) # Limpiamos la pantalla con color negro
+        for sprite in grupo_sprites:
+            if sprite != nave: 
+                sprite.update()
+                
+        # --- 3. LÓGICA DE COLISIONES ---
+        # groupcollide(grupo1, grupo2, dokill1, dokill2)
+        # Los dos "True" significan: "Destruye el láser (True) y destruye el enemigo (True)"
+        choques = pygame.sprite.groupcollide(grupo_laseres, grupo_enemigos, True, True)
         
-        # Actualizar la pantalla con lo que hemos dibujado
+        pantalla.fill(NEGRO)
+        grupo_sprites.draw(pantalla)
+        
         pygame.display.flip()
-        
-        # Controlar la velocidad del bucle
         reloj.tick(FPS)
 
-    # 4. Salir de forma limpia
     pygame.quit()
     sys.exit()
 
