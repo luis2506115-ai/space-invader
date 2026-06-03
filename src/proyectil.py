@@ -1,20 +1,28 @@
 import pygame
+import os
 
 class Proyectil(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        # Un láser delgado y alargado
-        self.image = pygame.Surface((4, 20)) 
-        self.image.fill((255, 255, 0)) # Color amarillo
+        
+        directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Usamos la imagen del disparo
+        ruta_imagen = os.path.join(directorio_base, "assets", "bullet_image.png")
+        
+        try:
+            imagen_original = pygame.image.load(ruta_imagen).convert_alpha()
+            # Un tamaño adecuado para un láser
+            self.image = pygame.transform.scale(imagen_original, (10, 30)) 
+        except FileNotFoundError:
+            self.image = pygame.Surface((4, 20)) 
+            self.image.fill((255, 255, 0)) 
         
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.bottom = y
-        self.velocidad = -10 # Negativo porque va hacia arriba en la pantalla
+        self.velocidad = -10 
 
     def update(self):
         self.rect.y += self.velocidad
-        # Si el láser sale por la parte superior de la pantalla, lo destruimos
-        # Esto es vital para no llenar tu memoria de objetos invisibles
         if self.rect.bottom < 0:
             self.kill()
