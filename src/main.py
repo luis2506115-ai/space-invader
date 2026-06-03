@@ -5,7 +5,8 @@ from jugador import Jugador
 from enemigo import Enemigo
 
 pygame.init()
-pygame.mixer.init() 
+pygame.mixer.init()
+pygame.font.init() # 1. Inicializamos el módulo de fuentes tipográficas
 
 ANCHO = 800
 ALTO = 600
@@ -16,10 +17,12 @@ reloj = pygame.time.Clock()
 FPS = 60
 NEGRO = (0, 0, 0)
 
+# 2. Configuramos la fuente (usamos 'impact' para un estilo más Arcade)
+fuente_puntuacion = pygame.font.SysFont("impact", 32)
+
 def main():
     directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # --- CARGAR ÍCONO Y FONDO ---
     ruta_icono = os.path.join(directorio_base, "assets", "title_icon.png")
     try:
         icono = pygame.image.load(ruta_icono).convert_alpha()
@@ -29,13 +32,11 @@ def main():
 
     ruta_fondo = os.path.join(directorio_base, "assets", "background.png")
     try:
-        # convert() es más rápido que convert_alpha() para fondos opacos
         fondo = pygame.image.load(ruta_fondo).convert()
         fondo = pygame.transform.scale(fondo, (ANCHO, ALTO))
     except FileNotFoundError:
         fondo = None
 
-    # --- CONFIGURACIÓN DE AUDIO ---
     ruta_musica = os.path.join(directorio_base, "assets", "music.mp3")
     ruta_explosion = os.path.join(directorio_base, "assets", "explosion.mp3")
     
@@ -54,6 +55,9 @@ def main():
 
     jugando = True
     nave = Jugador(ANCHO // 2, ALTO - 50)
+    
+    # 3. Variable inicial para llevar la cuenta de los puntos
+    puntuacion = 0
     
     grupo_sprites = pygame.sprite.Group()
     grupo_enemigos = pygame.sprite.Group()
@@ -86,17 +90,26 @@ def main():
                 
         choques = pygame.sprite.groupcollide(grupo_laseres, grupo_enemigos, True, True)
         
-        if choques and sonido_explosion:
-            sonido_explosion.play()
+        # 4. Lógica de puntuación en colisiones
+        if choques:
+            if sonido_explosion:
+                sonido_explosion.play()
+            
+            # choques devuelve un diccionario. Iteramos sobre los valores para sumar 10 puntos por cada enemigo destruido
+            for aliens_destruidos in choques.values():
+                puntuacion += len(aliens_destruidos) * 10
         
-        # --- RENDERIZADO DEL FONDO ---
         if fondo:
-            # blit() 'pega' una imagen sobre la pantalla en la coordenada (0,0)
             pantalla.blit(fondo, (0, 0))
         else:
             pantalla.fill(NEGRO)
             
         grupo_sprites.draw(pantalla)
+        
+        # 5. Renderizado del texto de puntuación en pantalla
+        # render(texto, antialiasing (para bordes suaves), color RGB)
+        texto_superficie = fuente_puntuacion.render(f"SCORE: {puntuacion}", True, (255, 255, 255))
+        pantalla.blit(texto_superficie, (20, 20))
         
         pygame.display.flip()
         reloj.tick(FPS)

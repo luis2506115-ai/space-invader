@@ -11,7 +11,7 @@ class Proyectil(pygame.sprite.Sprite):
         
         try:
             imagen_original = pygame.image.load(ruta_imagen).convert_alpha()
-            # Un tamaño adecuado para un láser
+            # Tamaño del láser
             self.image = pygame.transform.scale(imagen_original, (10, 30)) 
         except FileNotFoundError:
             self.image = pygame.Surface((4, 20)) 
