@@ -3,36 +3,34 @@ import os
 
 class MenuPuntajes:
     def __init__(self, pantalla):
-        # Recibimos la pantalla principal en lugar de crear una nueva
         self.pantalla = pantalla
         self.ANCHO = 800
         self.ALTO = 600
         
-        # Paleta de colores
         self.BLANCO = (255, 255, 255)
         self.NEGRO = (0, 0, 0)
         self.GRIS = (200, 200, 200)
         self.ROJO = (255, 0, 0)
         self.VERDE = (0, 255, 0)
 
-        # Rutas seguras usando os
         self.directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.archivo_puntajes = os.path.join(self.directorio_base, "puntajes.txt")
 
     def cargar_puntajes(self):
-        puntajes = []
+        registros = []
         try:
-            with open(self.archivo_puntajes, 'r') as file:
+            # Abrimos con codificación segura
+            with open(self.archivo_puntajes, 'r', encoding='utf-8') as file:
                 for line in file:
-                    # Validamos que la línea tenga el formato correcto antes de separarla
-                    if ", " in line:
-                        nombre, puntaje = line.strip().split(', ')
-                        puntajes.append((nombre, int(puntaje)))
+                    if "," in line:
+                        # Separación idéntica a la guía del cuaderno
+                        nombre, puntuacion = line.strip().split(",")
+                        registros.append((nombre, int(puntuacion)))
         except FileNotFoundError:
-            print("Archivo de puntajes no encontrado. Se creará uno nuevo al guardar.")
+            print("El archivo puntajes.txt no existe aún. Se creará al guardar.")
             
-        # Ordenamos de mayor a menor y tomamos los top 5
-        return sorted(puntajes, key=lambda x: x[1], reverse=True)[:5]
+        # Ordenamos de mayor a menor y retornamos el TOP 5
+        return sorted(registros, key=lambda x: x[1], reverse=True)[:5]
 
     def mostrar_texto(self, texto, font, color, x, y):
         texto_objeto = font.render(texto, True, color)
@@ -47,16 +45,14 @@ class MenuPuntajes:
     def mostrar_pantalla(self, puntajes):
         self.pantalla.fill(self.NEGRO)
 
-        # Cargar nuestro fondo galáctico en lugar de "menu_fondo.jpg"
         ruta_fondo = os.path.join(self.directorio_base, "assets", "background.png")
         try:
             fondo = pygame.image.load(ruta_fondo).convert()
             fondo = pygame.transform.scale(fondo, (self.ANCHO, self.ALTO))
             self.pantalla.blit(fondo, (0, 0))
         except FileNotFoundError:
-            pass # Si no hay fondo, se queda negro
+            pass
 
-        # Textos de encabezado
         fuente_titulo = pygame.font.SysFont("impact", 48)
         fuente_sub = pygame.font.SysFont("impact", 36)
         
@@ -75,28 +71,21 @@ class MenuPuntajes:
                 self.mostrar_texto(f"{i}. {nombre} : {puntaje}", fuente_lista, color_texto, self.ANCHO // 2, y_offset)
                 y_offset += 60
 
-        # Botón para volver atrás
         fuente_boton = pygame.font.SysFont("impact", 36)
         self.dibujar_boton("< VOLVER", fuente_boton, self.GRIS, self.NEGRO, 20, 20, 140, 50)
-
         pygame.display.update()
 
     def ejecutar(self):
         puntajes = self.cargar_puntajes()
-        
-        # Bucle exclusivo para esta pantalla
         viendo_menu = True
         while viendo_menu:
             self.mostrar_pantalla(puntajes)
-            
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     pygame.quit()
                     import sys
                     sys.exit()
-                elif evento.type == pygame.MOUSEBUTTONDOWN:
-                    if evento.button == 1: 
-                        x, y = evento.pos
-                        # Si el clic ocurre dentro de las coordenadas del botón "< VOLVER"
-                        if 20 <= x <= 160 and 20 <= y <= 70: 
-                            viendo_menu = False # Rompemos este bucle para regresar al main.py
+                elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                    x, y = evento.pos
+                    if 20 <= x <= 160 and 20 <= y <= 70: 
+                        viendo_menu = False
