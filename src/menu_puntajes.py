@@ -1,4 +1,5 @@
 import pygame
+import sys
 import os
 
 class MenuPuntajes:
@@ -13,9 +14,18 @@ class MenuPuntajes:
         self.ROJO = (255, 0, 0)
         self.VERDE = (0, 255, 0)
 
-        self.directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.archivo_puntajes = os.path.join(self.directorio_base, "puntajes.txt")
+        # Lógica especial para leer el archivo .txt desde donde esté el .exe
+        if getattr(sys, 'frozen', False):
+            directorio_txt = os.path.dirname(sys.executable)
+            # Y para cargar la imagen de fondo, usamos _MEIPASS
+            self.directorio_base = sys._MEIPASS
+        else:
+            directorio_txt = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self.directorio_base = directorio_txt
+            
+        self.archivo_puntajes = os.path.join(directorio_txt, "puntajes.txt")
 
+        
     def cargar_puntajes(self):
         registros = []
         try:

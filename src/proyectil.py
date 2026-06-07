@@ -1,11 +1,17 @@
 import pygame
+import sys # <-- Importamos sys para poder usar sys._MEIPASS
 import os
 
 class Proyectil(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         
-        directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # --- Lógica de rutas para PyInstaller ---
+        if getattr(sys, 'frozen', False):
+            directorio_base = sys._MEIPASS
+        else:
+            directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
         # Usamos la imagen del disparo
         ruta_imagen = os.path.join(directorio_base, "assets", "bullet_image.png")
         

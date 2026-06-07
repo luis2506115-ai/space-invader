@@ -18,7 +18,11 @@ class MenuAcercaDe:
         self.ROJO = (255, 0, 0)
         self.VERDE = (0, 255, 0)
 
-        self.directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Lógica de rutas para PyInstaller
+        if getattr(sys, 'frozen', False):
+            self.directorio_base = sys._MEIPASS
+        else:
+            self.directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     def cargar_imagen(self, nombre_archivo, fallback):
         ruta = os.path.join(self.directorio_base, "assets", nombre_archivo)

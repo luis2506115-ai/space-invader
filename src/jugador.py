@@ -1,4 +1,5 @@
 import pygame
+import sys
 import os
 import time
 from proyectil import Proyectil
@@ -7,7 +8,13 @@ class Jugador(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         
-        directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if getattr(sys, 'frozen', False):
+            # Si se está ejecutando como un .exe empaquetado
+            directorio_base = sys._MEIPASS
+        else:
+            # Si se ejecuta como script .py normal
+            directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
         ruta_imagen = os.path.join(directorio_base, "assets", "player_image.png")
         
         try:

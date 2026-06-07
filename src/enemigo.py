@@ -1,12 +1,20 @@
 import pygame
+import sys
 import os
 import random
 
 class Enemigo(pygame.sprite.Sprite):
     def __init__(self, x, y, nivel=1): # <-- Añadimos el nivel actual
         super().__init__()
+
+        if getattr(sys, 'frozen', False):
+            # Si se está ejecutando como un .exe empaquetado
+            directorio_base = sys._MEIPASS
+        else:
+            # Si se ejecuta como script .py normal
+            directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
         
-        directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
         opciones_alien = ["enemy_blue_image.png", "enemy_green_image.png", "enemy_purple_image.png"]
         alien_elegido = random.choice(opciones_alien)

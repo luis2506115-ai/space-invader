@@ -28,22 +28,25 @@ GRIS = (150, 150, 150)
 fuente_hud = pygame.font.SysFont("impact", 30)
 fuente_pantallas = pygame.font.SysFont("impact", 64)
 fuente_subtitulo = pygame.font.SysFont("impact", 24)
-# Fuente de texto más estilizada para el mensaje largo de felicitaciones
 fuente_registro = pygame.font.SysFont("arial", 20, bold=True)
 
 # --- SISTEMA DE PERSISTENCIA SEGURA ---
 def obtener_maximo_puntaje(menu_leaderboard):
     lista = menu_leaderboard.cargar_puntajes()
     if lista:
-        return lista[0][1] # Retorna la puntuación del primer lugar
+        return lista[0][1] 
     return 0
 
 def guardar_puntaje(nombre, puntuacion):
     if puntuacion > 0: 
-        directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        archivo = os.path.join(directorio_base, "puntajes.txt")
+        # LÓGICA DE ESCRITURA: Guardar el txt al lado del ejecutable real
+        if getattr(sys, 'frozen', False):
+            directorio_txt = os.path.dirname(sys.executable)
+        else:
+            directorio_txt = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+        archivo = os.path.join(directorio_txt, "puntajes.txt")
         with open(archivo, "a", encoding="utf-8") as f:
-            # Formato exacto del cuaderno guía: nombre,puntuación
             f.write(f"{nombre},{puntuacion}\n")
 
 def generar_flota(nivel, grupo_sprites, grupo_enemigos):
@@ -68,7 +71,11 @@ def dibujar_boton(texto, x, y, ancho, alto):
     pantalla.blit(texto_render, rect_texto)
 
 def main():
-    directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # LÓGICA DE LECTURA: Buscar multimedia en la carpeta temporal de PyInstaller
+    if getattr(sys, 'frozen', False):
+        directorio_base = sys._MEIPASS
+    else:
+        directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
     ruta_icono = os.path.join(directorio_base, "assets", "title_icon.png")
     try:
@@ -112,7 +119,6 @@ def main():
     except FileNotFoundError:
         sonido_explosion = None
 
-    # Carga del nuevo audio de victoria/récord
     try:
         sonido_ganar = pygame.mixer.Sound(ruta_ganar)
         sonido_ganar.set_volume(0.5)
@@ -129,7 +135,7 @@ def main():
     puntuacion = 0
     nombre_jugador = ""
     estado_post_ingreso = "" 
-    es_record_maximo = False # Bandera para personalizar el texto en pantalla
+    es_record_maximo = False 
     
     nave = Jugador(ANCHO // 2, ALTO - 50)
     grupo_sprites = pygame.sprite.Group()
@@ -210,17 +216,15 @@ def main():
                 for aliens_destruidos in choques.values():
                     puntuacion += len(aliens_destruidos) * 10
             
-            # --- EVALUACIÓN DE FIN DE PARTIDA ---
             def ir_a_registro(estado_final):
                 nonlocal estado, estado_post_ingreso, es_record_maximo
                 max_actual = obtener_maximo_puntaje(menu_leaderboard)
                 
-                # Validación de récord tal como pide el cuaderno
                 if puntuacion > max_actual:
                     es_record_maximo = True
-                    pygame.mixer.music.stop() # Pausa música ambiental
+                    pygame.mixer.music.stop() 
                     if sonido_ganar:
-                        sonido_ganar.play() # Ejecuta sonido ganar.mp3
+                        sonido_ganar.play() 
                 
                 estado = "INGRESO_NOMBRE"
                 estado_post_ingreso = estado_final
@@ -243,7 +247,6 @@ def main():
                     ir_a_registro("GAME_OVER")
                     break
 
-        # --- CAPA DE RENDERIZADO ---
         if fondo:
             pantalla.blit(fondo, (0, 0))
         else:
@@ -259,7 +262,6 @@ def main():
         elif estado == "INGRESO_NOMBRE":
             txt_ingreso = fuente_pantallas.render("FIN DE LA MISIÓN", True, BLANCO)
             
-            # Mensaje condicional dinámico según el puntaje obtenido
             if es_record_maximo:
                 msg = "¡Felicidades! Has superado el máximo puntaje. Por favor, ingresa tu nombre:"
                 color_msg = VERDE
