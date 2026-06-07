@@ -4,6 +4,8 @@ import os
 from jugador import Jugador
 from enemigo import Enemigo
 from menu_puntajes import MenuPuntajes
+from menu_principal import MenuPrincipal # <-- Importamos la nueva clase
+from menu_acerca_de import MenuAcercaDe  # <-- Importamos la clase del menú "Acerca de"
 
 pygame.init()
 pygame.mixer.init()
@@ -27,12 +29,10 @@ fuente_hud = pygame.font.SysFont("impact", 30)
 fuente_pantallas = pygame.font.SysFont("impact", 64)
 fuente_subtitulo = pygame.font.SysFont("impact", 24)
 
-# Modificamos guardar_puntaje para que reciba el nombre dinámico
 def guardar_puntaje(nombre, puntuacion):
     if puntuacion > 0: 
         directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         archivo = os.path.join(directorio_base, "puntajes.txt")
-        # Usamos utf-8 por si escriben acentos
         with open(archivo, "a", encoding="utf-8") as f:
             f.write(f"{nombre}, {puntuacion}\n")
 
@@ -57,7 +57,6 @@ def dibujar_boton(texto, x, y, ancho, alto):
     rect_texto = texto_render.get_rect(center=(x + ancho//2, y + alto//2))
     pantalla.blit(texto_render, rect_texto)
 
-
 def main():
     directorio_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
@@ -75,15 +74,26 @@ def main():
     except FileNotFoundError:
         fondo = None
 
-    ruta_musica = os.path.join(directorio_base, "assets", "music.mp3")
+    ruta_musica_menu = os.path.join(directorio_base, "assets", "music.mp3")
+    ruta_musica_juego = os.path.join(directorio_base, "assets", "background_sound.mp3")
     ruta_explosion = os.path.join(directorio_base, "assets", "explosion.mp3")
     
-    try:
-        pygame.mixer.music.load(ruta_musica)
-        pygame.mixer.music.set_volume(0.4)
-        pygame.mixer.music.play(-1) 
-    except pygame.error:
-        pass
+    musica_actual = ""
+    def cambiar_musica(nueva_musica):
+        nonlocal musica_actual
+        if musica_actual != nueva_musica:
+            try:
+                if nueva_musica == "MENU":
+                    pygame.mixer.music.load(ruta_musica_menu)
+                elif nueva_musica == "JUEGO":
+                    pygame.mixer.music.load(ruta_musica_juego)
+                pygame.mixer.music.set_volume(0.4)
+                pygame.mixer.music.play(-1)
+                musica_actual = nueva_musica
+            except pygame.error:
+                pass
+
+    cambiar_musica("MENU")
 
     try:
         sonido_explosion = pygame.mixer.Sound(ruta_explosion)
@@ -92,15 +102,15 @@ def main():
         sonido_explosion = None
 
     menu_leaderboard = MenuPuntajes(pantalla)
+    menu_inicio = MenuPrincipal(pantalla) # Instanciamos el nuevo menú
+    menu_acerca = MenuAcercaDe(pantalla)  # Instanciamos el menú "Acerca de"
 
     estado = "INICIO" 
     nivel = 1
     MAX_NIVELES = 9
     puntuacion = 0
-    
-    # Variables para la caja de texto
     nombre_jugador = ""
-    estado_post_ingreso = "" # Para saber si vamos a GAME_OVER o VICTORIA después de escribir
+    estado_post_ingreso = "" 
     
     nave = Jugador(ANCHO // 2, ALTO - 50)
     grupo_sprites = pygame.sprite.Group()
@@ -112,18 +122,28 @@ def main():
 
     ejecutando = True
     while ejecutando:
+        
+        # --- MÁQUINA DE ESTADOS: MENÚ PRINCIPAL ---
+        if estado == "INICIO":
+            # Llamamos a la clase MenuPrincipal. El programa se "pausa" aquí hasta que el usuario presiona Enter.
+            opcion_elegida = menu_inicio.ejecutar()
+            
+            if opcion_elegida == "Iniciar juego":
+                estado = "JUGANDO"
+                cambiar_musica("JUEGO")
+            elif opcion_elegida == "Puntajes":
+                menu_leaderboard.ejecutar()
+            elif opcion_elegida == "Acerca de":
+                menu_acerca.ejecutar()
+            continue # Saltamos el resto del bucle para no renderizar la lógica del juego mientras estamos en el menú
+
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 ejecutando = False
             
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 x, y = evento.pos
-                if estado == "INICIO":
-                    if ANCHO//2 - 100 <= x <= ANCHO//2 + 100 and 300 <= y <= 350:
-                        estado = "JUGANDO"
-                    elif ANCHO//2 - 100 <= x <= ANCHO//2 + 100 and 380 <= y <= 430:
-                        menu_leaderboard.ejecutar() 
-                elif estado in ["GAME_OVER", "VICTORIA"]:
+                if estado in ["GAME_OVER", "VICTORIA"]:
                     if ANCHO//2 - 120 <= x <= ANCHO//2 + 120 and ALTO//2 + 100 <= y <= ALTO//2 + 150:
                         menu_leaderboard.ejecutar()
 
@@ -132,26 +152,26 @@ def main():
                     if evento.key == pygame.K_SPACE:
                         nave.disparar(grupo_sprites, grupo_laseres)
                 
-                # --- NUEVO: CAPTURA DE TEXTO EN INGRESO_NOMBRE ---
                 elif estado == "INGRESO_NOMBRE":
-                    if evento.key == pygame.K_RETURN: # Al presionar Enter
+                    if evento.key == pygame.K_RETURN: 
                         if nombre_jugador.strip() == "":
                             nombre_jugador = "Anónimo"
                         guardar_puntaje(nombre_jugador, puntuacion)
                         estado = estado_post_ingreso
-                    elif evento.key == pygame.K_BACKSPACE: # Al borrar
+                    elif evento.key == pygame.K_BACKSPACE: 
                         nombre_jugador = nombre_jugador[:-1]
                     else:
-                        # Limitamos a 12 caracteres y evitamos las comas
                         if len(nombre_jugador) < 12 and evento.unicode.isprintable() and evento.unicode != ",":
                             nombre_jugador += evento.unicode
                             
                 elif estado in ["GAME_OVER", "VICTORIA"]:
                     if evento.key == pygame.K_r:
-                        estado = "JUGANDO"
+                        # Al reiniciar, regresamos al menú principal del profesor en lugar de iniciar el juego directo
+                        estado = "INICIO"
+                        cambiar_musica("MENU") 
                         nivel = 1
                         puntuacion = 0
-                        nombre_jugador = "" # Limpiamos el nombre para la próxima partida
+                        nombre_jugador = "" 
                         grupo_sprites.empty()
                         grupo_enemigos.empty()
                         grupo_laseres.empty()
@@ -184,45 +204,37 @@ def main():
                 else:
                     estado = "INGRESO_NOMBRE"
                     estado_post_ingreso = "VICTORIA"
+                    cambiar_musica("MENU")
 
             if pygame.sprite.spritecollideany(nave, grupo_enemigos):
                 estado = "INGRESO_NOMBRE"
                 estado_post_ingreso = "GAME_OVER"
+                cambiar_musica("MENU") 
             
             for enemigo in grupo_enemigos:
                 if enemigo.rect.bottom >= ALTO - 40:
                     estado = "INGRESO_NOMBRE"
                     estado_post_ingreso = "GAME_OVER"
+                    cambiar_musica("MENU") 
                     break
 
-        # --- RENDERIZADO ---
         if fondo:
             pantalla.blit(fondo, (0, 0))
         else:
             pantalla.fill(NEGRO)
             
-        if estado == "INICIO":
-            txt_titulo = fuente_pantallas.render("SPACE INVADER", True, VERDE)
-            pantalla.blit(txt_titulo, (ANCHO // 2 - txt_titulo.get_width() // 2, 150))
-            dibujar_boton("JUGAR", ANCHO//2 - 100, 300, 200, 50)
-            dibujar_boton("PUNTAJES", ANCHO//2 - 100, 380, 200, 50)
-
-        elif estado == "JUGANDO":
+        if estado == "JUGANDO":
             grupo_sprites.draw(pantalla)
             txt_score = fuente_hud.render(f"SCORE: {puntuacion}", True, BLANCO)
             txt_level = fuente_hud.render(f"LEVEL: {nivel}/{MAX_NIVELES}", True, VERDE)
             pantalla.blit(txt_score, (20, 20))
             pantalla.blit(txt_level, (ANCHO - 180, 20))
             
-        # --- NUEVO: PANTALLA DE INGRESO DE TEXTO ---
         elif estado == "INGRESO_NOMBRE":
             txt_ingreso = fuente_pantallas.render("NUEVO RÉCORD", True, BLANCO)
             txt_instruccion = fuente_subtitulo.render("Ingresa tu nombre de piloto:", True, VERDE)
-            
-            # Efecto de parpadeo del cursor usando el reloj de Pygame
             cursor = "_" if pygame.time.get_ticks() % 1000 < 500 else ""
             txt_nombre = fuente_pantallas.render(nombre_jugador + cursor, True, ROJO)
-            
             txt_enter = fuente_subtitulo.render("Presiona ENTER para guardar", True, GRIS)
             
             pantalla.blit(txt_ingreso, (ANCHO // 2 - txt_ingreso.get_width() // 2, ALTO // 2 - 150))
